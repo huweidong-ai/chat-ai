@@ -1,11 +1,2 @@
-/.idea/.gitignore
-/.idea/chat-ai.iml
-/.idea/compiler.xml
-/.idea/easyCodeTableSettingEncode.xml
-/.idea/encodings.xml
-/.idea/jarRepositories.xml
-/chat-ai-backend/.mvn/wrapper/maven-wrapper.properties
-/.idea/misc.xml
-/.idea/modules.xml
-/.idea/inspectionProfiles/Project_Default.xml
-/.idea/vcs.xml
+/.vscode/
+/.idea/
