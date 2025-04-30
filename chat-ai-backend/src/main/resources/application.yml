@@ -1,0 +1,56 @@
+server:
+  port: 9090
+  servlet:
+    context-path: /aiProxy
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/chat_ai
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 30000 # 30 seconds
+      max-lifetime: 1800000 # 30 minutes
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: redis
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-3.5-turbo
+          temperature: 0.7
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY}
+      chat:
+        options:
+          model: claude-3-opus
+          temperature: 0.7
+    zhipuai:
+      api-key: ${ZHIPUAI_API_KEY}
+      chat:
+        options:
+          model: glm-4
+          temperature: 0.7
+
+
+app:
+  jwt-secret: your-secret-key
+  jwt-expiration-milliseconds: 86400000
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.hello.ai.chataibackend.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl 
