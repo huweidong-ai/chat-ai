@@ -39,16 +39,7 @@
           </div>
         </div>
 
-        <div class="sidebar-footer">
-          <button class="footer-btn">
-            <i class="fas fa-user"></i>
-            个人中心
-          </button>
-          <button class="footer-btn">
-            <i class="fas fa-cog"></i>
-            设置
-          </button>
-        </div>
+        <SidebarFooter />
       </div>
     </aside>
     
@@ -64,8 +55,13 @@
 </template>
 
 <script>
+import SidebarFooter from '@/components/sidebar/SidebarFooter.vue';
+
 export default {
   name: 'App',
+  components: {
+    SidebarFooter
+  },
   data() {
     return {
       isSidebarCollapsed: false
@@ -217,33 +213,6 @@ body {
 .time {
   font-size: 12px;
   color: #999;
-}
-
-.sidebar-footer {
-  padding: 16px;
-  border-top: 1px solid #eee;
-  display: flex;
-  gap: 8px;
-}
-
-.footer-btn {
-  flex: 1;
-  padding: 8px;
-  background: none;
-  border: none;
-  border-radius: 6px;
-  color: #666;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 13px;
-}
-
-.footer-btn:hover {
-  background: #f5f5f5;
-  color: #333;
 }
 
 .main-content {
