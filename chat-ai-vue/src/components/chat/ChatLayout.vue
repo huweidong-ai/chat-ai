@@ -8,12 +8,6 @@
         @send="handleSendMessage"
       />
     </div>
-    <LoginModal
-      v-if="showLoginModal"
-      :visible="showLoginModal"
-      @close="closeLoginModal"
-      @login-success="handleLoginSuccess"
-    />
   </div>
 </template>
 
@@ -21,17 +15,14 @@
 import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '@/store/modules/auth';
 import ChatWindow from './ChatWindow.vue';
-import LoginModal from '../auth/LoginModal.vue';
 
 export default {
   name: 'ChatLayout',
   components: {
-    ChatWindow,
-    LoginModal
+    ChatWindow
   },
   setup() {
     const authStore = useAuthStore();
-    const showLoginModal = ref(false);
     const chatHistory = ref([
       {
         id: '1',
@@ -58,7 +49,7 @@ export default {
     // 检查是否需要登录
     const checkAuth = () => {
       if (!authStore.isLoggedIn) {
-        showLoginModal.value = true;
+        authStore.showLoginModal = true;
         return false;
       }
       return true;
@@ -93,26 +84,15 @@ export default {
       isStreaming.value = false;
     };
 
-    const closeLoginModal = () => {
-      showLoginModal.value = false;
-    };
-
-    const handleLoginSuccess = () => {
-      closeLoginModal();
-    };
-
     onMounted(async () => {
-      await authStore.checkAuth();
+      await checkAuth();
     });
 
     return {
       currentMessages,
       isStreaming,
-      showLoginModal,
       handleSendMessage,
-      handleStopStream,
-      closeLoginModal,
-      handleLoginSuccess
+      handleStopStream
     };
   }
 };

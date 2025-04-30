@@ -5,10 +5,10 @@
         <img :src="userAvatar" alt="用户头像" class="user-avatar" />
         <span class="username">{{ username }}</span>
       </div>
-      <router-link v-else to="/login" class="login-btn">
+      <button v-else class="login-btn" @click="showLoginModal">
         <i class="fas fa-user"></i>
         <span>登录</span>
-      </router-link>
+      </button>
       <button class="expand-btn" @click="toggleMenu">
         <i :class="['fas', isExpanded ? 'fa-chevron-down' : 'fa-chevron-up']"></i>
       </button>
@@ -48,12 +48,17 @@ export default {
       isExpanded.value = !isExpanded.value;
     };
 
+    const showLoginModal = () => {
+      authStore.showLoginModal = true;
+    };
+
     return {
       isLoggedIn,
       username,
       userAvatar,
       isExpanded,
-      toggleMenu
+      toggleMenu,
+      showLoginModal
     };
   }
 };

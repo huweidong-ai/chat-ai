@@ -80,7 +80,7 @@
 
 <script>
 import { ref, computed } from 'vue';
-import { useStore } from 'vuex';
+import { useAuthStore } from '@/store/modules/auth';
 
 export default {
   name: 'LoginModal',
@@ -92,7 +92,7 @@ export default {
   },
   emits: ['close', 'login-success'],
   setup(props, { emit }) {
-    const store = useStore();
+    const authStore = useAuthStore();
     const phone = ref('');
     const verificationCode = ref('');
     const agreeToTerms = ref(false);
@@ -117,11 +117,8 @@ export default {
     // 发送验证码
     const sendVerificationCode = async () => {
       if (!canSendCode.value) return;
-      
       try {
-        // TODO: 调用发送验证码API
-        await store.dispatch('auth/sendVerificationCode', phone.value);
-        
+        await authStore.sendCode(phone.value);
         // 开始倒计时
         countdown.value = 60;
         const timer = setInterval(() => {
@@ -139,9 +136,8 @@ export default {
     // 处理登录
     const handleLogin = async () => {
       if (!canLogin.value) return;
-
       try {
-        await store.dispatch('auth/login', {
+        await authStore.login({
           phone: phone.value,
           code: verificationCode.value
         });

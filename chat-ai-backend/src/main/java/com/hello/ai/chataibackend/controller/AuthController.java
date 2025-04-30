@@ -1,7 +1,9 @@
 package com.hello.ai.chataibackend.controller;
 
 import com.hello.ai.chataibackend.dto.LoginRequest;
+import com.hello.ai.chataibackend.dto.PhoneLoginRequest;
 import com.hello.ai.chataibackend.dto.RegisterRequest;
+import com.hello.ai.chataibackend.dto.VerificationCodeRequest;
 import com.hello.ai.chataibackend.entity.User;
 import com.hello.ai.chataibackend.service.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -27,5 +29,15 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<User> getCurrentUser() {
         return ResponseEntity.ok(authService.getCurrentUser());
+    }
+
+    @PostMapping("/verification-code")
+    public ResponseEntity<?> sendVerificationCode(@RequestBody VerificationCodeRequest request) {
+        return ResponseEntity.ok(authService.sendVerificationCode(request));
+    }
+
+    @PostMapping("/login/phone")
+    public ResponseEntity<?> phoneLogin(@RequestBody PhoneLoginRequest request) {
+        return ResponseEntity.ok(authService.loginByPhone(request));
     }
 } 

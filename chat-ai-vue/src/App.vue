@@ -51,21 +51,50 @@
       </div>
       <router-view></router-view>
     </div>
+    <LoginModal
+      v-if="showLoginModal"
+      :visible="showLoginModal"
+      @close="closeLoginModal"
+      @login-success="handleLoginSuccess"
+    />
   </div>
 </template>
 
 <script>
 import SidebarFooter from '@/components/sidebar/SidebarFooter.vue';
+import { computed } from 'vue';
+import { useAuthStore } from '@/store/modules/auth';
+import LoginModal from '@/components/auth/LoginModal.vue';
 
 export default {
   name: 'App',
   components: {
-    SidebarFooter
+    SidebarFooter,
+    LoginModal
   },
   data() {
     return {
       isSidebarCollapsed: false
     }
+  },
+  setup() {
+    const authStore = useAuthStore();
+    
+    const showLoginModal = computed(() => authStore.showLoginModal);
+    
+    const closeLoginModal = () => {
+      authStore.showLoginModal = false;
+    };
+    
+    const handleLoginSuccess = () => {
+      closeLoginModal();
+    };
+    
+    return {
+      showLoginModal,
+      closeLoginModal,
+      handleLoginSuccess
+    };
   },
   methods: {
     toggleSidebar() {

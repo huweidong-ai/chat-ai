@@ -1,7 +1,7 @@
 server:
   port: 9090
-  servlet:
-    context-path: /aiProxy
+#  servlet:
+#    context-path: /aiProxy
 
 spring:
   datasource:
@@ -12,7 +12,7 @@ spring:
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
-      idle-timeout: 30000 # 30 seconds
+      idle-timeout: 30000 # 30 secondsx`
       max-lifetime: 1800000 # 30 minutes
   data:
     redis:
