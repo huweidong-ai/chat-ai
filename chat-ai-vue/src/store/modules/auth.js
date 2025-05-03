@@ -17,15 +17,15 @@ export const useAuthStore = defineStore('auth', () => {
   // 手机号验证码登录（调用service）
   const login = async ({ phone, code }) => {
     const res = await phoneLogin(phone, code);
-    if (res.success && res.data) {
+    if (res.data) {
       user.value = res.data.user;
       token.value = res.data.token;
       localStorage.setItem('user', JSON.stringify(res.data.user));
       localStorage.setItem('token', res.data.token);
       return res.data.user;
-    } else {
+        } else {
       throw new Error(res.message || '登录失败');
-    }
+        }
   };
 
   // 获取当前用户（可选，用于自动登录）
@@ -43,7 +43,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null;
     token.value = null;
     localStorage.removeItem('user');
-    localStorage.removeItem('token');
+      localStorage.removeItem('token');
   };
 
   // 初始化状态

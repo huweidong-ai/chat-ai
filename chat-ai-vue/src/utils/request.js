@@ -24,6 +24,7 @@ request.interceptors.response.use(
   response => {
     const { data } = response;
     // 判断业务状态码{code: 200, data: {…}, message: '请求成功', success: true}
+    console.log('响应数据:', data)
     if (data.code === 200 || data.success) {
       return {
         success: true,

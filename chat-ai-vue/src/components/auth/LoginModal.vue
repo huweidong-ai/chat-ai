@@ -22,42 +22,54 @@
         </div>
 
         <div class="login-section">
-          <h3>手机号快捷登录</h3>
+          <h3>手机号登录</h3>
           <div class="phone-login">
             <div class="input-group">
               <div class="country-code">
                 <span>+86</span>
                 <i class="fas fa-chevron-down"></i>
               </div>
-              <input 
-                type="text" 
-                v-model="phone" 
+              <input
+                type="text"
+                v-model="phone"
+                :class="['phone-input', phoneError ? 'error-input' : '']"
                 placeholder="请输入手机号"
-                class="phone-input" 
+                @input="onPhoneInput"
+                @blur="validatePhone"
+                maxlength="11"
               />
             </div>
+            <div v-if="phoneError" class="error-message">{{ phoneError }}</div>
             <div class="input-group">
-              <input 
-                type="text" 
-                v-model="verificationCode" 
+              <input
+                type="text"
+                v-model="verificationCode"
+                :class="['verification-input', codeError ? 'error-input' : '']"
                 placeholder="请输入验证码"
-                class="verification-input" 
+                @input="onCodeInput"
+                @blur="validateCode"
+                maxlength="6"
               />
-              <button 
+              <button
                 class="verification-btn"
-                :disabled="!canSendCode || countdown > 0"
+                :class="{ 'active-btn': isPhoneValid && !isCountingDown }"
+                :disabled="!isPhoneValid || isCountingDown"
                 @click="sendVerificationCode"
               >
-                {{ countdown > 0 ? `${countdown}秒后重试` : '发送验证码' }}
+                {{ countdownText }}
               </button>
             </div>
-            <button 
+            <div v-if="codeError" class="error-message">{{ codeError }}</div>
+            <button
               class="login-btn"
               :disabled="!canLogin"
               @click="handleLogin"
             >
               登录
             </button>
+            <div v-if="showAgreementTip" class="agreement-tip">
+              请勾选《用户协议与隐私政策》
+            </div>
           </div>
         </div>
       </div>
@@ -67,10 +79,10 @@
           <input type="checkbox" v-model="agreeToTerms">
           <span class="checkmark"></span>
           <span class="terms-text">
-            已阅读并同意
-            <a href="#" @click.prevent="showTerms('service')">《服务条款》</a>
-            和
-            <a href="#" @click.prevent="showTerms('privacy')">《隐私协议》</a>
+            勾选即代表您阅读并同意
+            <a href="#" @click.prevent="showTerms('service')">《用户协议》</a>
+            与
+            <a href="#" @click.prevent="showTerms('privacy')">《隐私政策》</a>
           </span>
         </label>
       </div>
@@ -99,27 +111,55 @@ export default {
     const countdown = ref(0);
     const qrCodeUrl = ref(''); // TODO: 替换为实际的二维码URL
 
-    // 验证手机号格式
-    const isValidPhone = computed(() => {
-      return /^1[3-9]\d{9}$/.test(phone.value);
-    });
+    const phoneError = ref('');
+    const codeError = ref('');
 
-    // 是否可以发送验证码
-    const canSendCode = computed(() => {
-      return isValidPhone.value && agreeToTerms.value;
-    });
+    const isPhoneValid = computed(() => /^1[3-9]\d{9}$/.test(phone.value));
+    const isCountingDown = computed(() => countdown.value > 0);
 
-    // 是否可以登录
-    const canLogin = computed(() => {
-      return isValidPhone.value && verificationCode.value.length === 6 && agreeToTerms.value;
-    });
+    const validatePhone = () => {
+      if (!phone.value) {
+        phoneError.value = '请输入手机号';
+      } else if (!isPhoneValid.value) {
+        phoneError.value = '请输入正确格式的手机号';
+      } else {
+        phoneError.value = '';
+      }
+    };
 
-    // 发送验证码
+    const validateCode = () => {
+      if (!verificationCode.value) {
+        codeError.value = '请输入验证码';
+      } else if (verificationCode.value.length !== 6) {
+        codeError.value = '请输入6位验证码';
+      } else {
+        codeError.value = '';
+      }
+    };
+
+    const canLogin = computed(() =>
+      isPhoneValid.value &&
+      verificationCode.value.length === 6 &&
+      agreeToTerms.value &&
+      !phoneError.value &&
+      !codeError.value
+    );
+
+    const showAgreementTip = computed(() =>
+      isPhoneValid.value &&
+      verificationCode.value.length === 6 &&
+      !agreeToTerms.value
+    );
+
+    const countdownText = computed(() =>
+      countdown.value > 0 ? `${countdown.value}秒后重试` : '获取验证码'
+    );
+
     const sendVerificationCode = async () => {
-      if (!canSendCode.value) return;
+      validatePhone();
+      if (!isPhoneValid.value) return;
       try {
         await authStore.sendCode(phone.value);
-        // 开始倒计时
         countdown.value = 60;
         const timer = setInterval(() => {
           countdown.value--;
@@ -128,13 +168,13 @@ export default {
           }
         }, 1000);
       } catch (error) {
-        console.error('发送验证码失败:', error);
-        // TODO: 显示错误提示
+        // 可加错误提示
       }
     };
 
-    // 处理登录
     const handleLogin = async () => {
+      validatePhone();
+      validateCode();
       if (!canLogin.value) return;
       try {
         await authStore.login({
@@ -144,20 +184,25 @@ export default {
         emit('login-success');
         handleClose();
       } catch (error) {
-        console.error('登录失败:', error);
-        // TODO: 显示错误提示
+        // 可加错误提示
       }
     };
 
-    // 显示条款
-    const showTerms = (type) => {
+    const showTerms = () => {
       // TODO: 显示服务条款或隐私协议
-      console.log('Show terms:', type);
     };
 
-    // 关闭弹窗
     const handleClose = () => {
       emit('close');
+    };
+
+    const onPhoneInput = (e) => {
+      // 只允许输入数字，且最大11位
+      phone.value = e.target.value.replace(/\D/g, '').slice(0, 11);
+    };
+
+    const onCodeInput = (e) => {
+      verificationCode.value = e.target.value.replace(/\D/g, '').slice(0, 6);
     };
 
     return {
@@ -166,12 +211,19 @@ export default {
       agreeToTerms,
       countdown,
       qrCodeUrl,
-      canSendCode,
+      phoneError,
+      codeError,
+      isPhoneValid,
+      isCountingDown,
       canLogin,
+      showAgreementTip,
+      countdownText,
       sendVerificationCode,
       handleLogin,
       showTerms,
-      handleClose
+      handleClose,
+      onPhoneInput,
+      onCodeInput
     };
   }
 };
@@ -333,27 +385,22 @@ export default {
   border-color: #4f46e5;
 }
 
-.verification-btn {
-  padding: 0 16px;
-  border: 1px solid #4f46e5;
-  border-radius: 6px;
-  background: none;
-  color: #4f46e5;
-  font-size: 14px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.3s;
+.error-input {
+  border-color: #e53e3e !important;
 }
 
-.verification-btn:hover:not(:disabled) {
-  background: #4f46e5;
-  color: white;
+.error-message {
+  color: #e53e3e;
+  font-size: 13px;
+  margin-top: 4px;
+  text-align: left;
 }
 
-.verification-btn:disabled {
-  border-color: #e6e6e6;
-  color: #999;
-  cursor: not-allowed;
+.agreement-tip {
+  color: #e53e3e;
+  font-size: 13px;
+  margin-top: 8px;
+  text-align: left;
 }
 
 .login-btn {
@@ -423,5 +470,35 @@ export default {
 
 .terms-text a:hover {
   text-decoration: underline;
+}
+
+.verification-btn {
+  padding: 0 16px;
+  border: 1px solid #e6e6e6;
+  border-radius: 6px;
+  background: none;
+  color: #999;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+
+.verification-btn.active-btn {
+  border: 1px solid #4f46e5;
+  color: #4f46e5;
+  background: #f5f7ff;
+}
+
+.verification-btn.active-btn:hover:not(:disabled) {
+  background: #4f46e5;
+  color: #fff;
+}
+
+.verification-btn:disabled {
+  border-color: #e6e6e6;
+  color: #999;
+  cursor: not-allowed;
+  background: none;
 }
 </style> 
