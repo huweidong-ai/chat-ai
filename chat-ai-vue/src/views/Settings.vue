@@ -81,7 +81,7 @@ export default {
     });
     const logout = () => {
       authStore.logout();
-      router.push('/login');
+      router.push('/chat');
     };
     const closeSettings = () => {
       router.back();

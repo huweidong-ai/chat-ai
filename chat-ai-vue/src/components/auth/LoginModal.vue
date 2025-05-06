@@ -9,7 +9,7 @@
         </button>
       </div>
 
-      <div class="login-methods">
+      <div class="login-methods horizontal">
         <div class="login-section">
           <h3>微信扫码登录</h3>
           <div class="qr-code">
@@ -17,7 +17,7 @@
           </div>
         </div>
 
-        <div class="divider">
+        <div class="divider-vertical">
           <span>或</span>
         </div>
 
@@ -255,121 +255,147 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
+  min-height: 100vh;
   z-index: 1000;
 }
 
 .modal-content {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  width: 100%;
-  max-width: 480px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 36px 32px 24px 32px;
+  width: 720px;
+  max-width: 98vw;
+  margin: 0 16px;
   position: relative;
+  box-shadow: 0 8px 32px 0 rgba(60, 60, 100, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .modal-header {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 18px;
 }
 
 .modal-header h2 {
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 26px;
+  font-weight: 700;
   margin: 0;
-  color: #333;
+  color: #222;
+  letter-spacing: 1px;
 }
 
 .subtitle {
-  font-size: 16px;
-  color: #666;
+  font-size: 15px;
+  color: #aaa;
   margin: 8px 0 0 0;
+  font-weight: 400;
 }
 
 .close-btn {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 18px;
+  right: 18px;
   background: none;
   border: none;
-  font-size: 20px;
-  color: #999;
+  font-size: 22px;
+  color: #bbb;
   cursor: pointer;
-  padding: 4px;
+  z-index: 10;
+  transition: color 0.2s;
+}
+.close-btn:hover {
+  color: #6366f1;
 }
 
-.login-methods {
+.login-methods.horizontal {
   display: flex;
-  flex-direction: column;
-  gap: 24px;
+  flex-direction: row;
+  gap: 0;
+  align-items: stretch;
+  margin-bottom: 0;
+  background: none;
 }
 
 .login-section {
-  text-align: center;
+  flex: 1;
+  min-width: 0;
+  padding: 0 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .login-section h3 {
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
   color: #333;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+  text-align: center;
 }
 
 .qr-code {
   width: 180px;
   height: 180px;
   margin: 0 auto;
-  background: #f5f5f5;
+  background: #f7f8fa;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 14px;
+  border: 1.5px solid #ececec;
+  box-shadow: 0 2px 8px 0 rgba(60,60,100,0.04);
 }
 
 .qr-image {
-  width: 160px;
-  height: 160px;
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
 }
 
-.divider {
+.divider-vertical {
+  width: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
-  text-align: center;
-  margin: 24px 0;
 }
-
-.divider::before,
-.divider::after {
+.divider-vertical span {
+  writing-mode: vertical-lr;
+  color: #bbb;
+  font-size: 14px;
+  background: #fff;
+  padding: 0 2px;
+  z-index: 1;
+  font-weight: 500;
+}
+.divider-vertical::before {
   content: '';
   position: absolute;
-  top: 50%;
-  width: calc(50% - 20px);
-  height: 1px;
-  background-color: #e6e6e6;
-}
-
-.divider::before {
-  left: 0;
-}
-
-.divider::after {
-  right: 0;
-}
-
-.divider span {
-  background: white;
-  padding: 0 10px;
-  color: #999;
-  font-size: 14px;
+  left: 50%;
+  top: 0;
+  width: 1.5px;
+  height: 100%;
+  background: #ececec;
+  transform: translateX(-50%);
+  z-index: 0;
+  border-radius: 1px;
 }
 
 .phone-login {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+  width: 100%;
+  align-items: center;
 }
 
 .input-group {
   display: flex;
   gap: 8px;
+  width: 100%;
 }
 
 .country-code {
@@ -377,27 +403,31 @@ export default {
   align-items: center;
   gap: 4px;
   padding: 0 12px;
-  border: 1px solid #e6e6e6;
-  border-radius: 6px;
+  border: 1.5px solid #e6e6e6;
+  border-radius: 10px;
   color: #333;
   font-size: 14px;
   cursor: pointer;
+  background: #fafbfc;
+  height: 40px;
 }
 
 .phone-input,
 .verification-input {
   flex: 1;
-  padding: 10px 12px;
-  border: 1px solid #e6e6e6;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: 10px 14px;
+  border: 1.5px solid #e6e6e6;
+  border-radius: 10px;
+  font-size: 15px;
   outline: none;
   transition: border-color 0.3s;
+  background: #fafbfc;
+  height: 40px;
 }
 
 .phone-input:focus,
 .verification-input:focus {
-  border-color: #4f46e5;
+  border-color: #6366f1;
 }
 
 .error-input {
@@ -407,8 +437,9 @@ export default {
 .error-message {
   color: #e53e3e;
   font-size: 13px;
-  margin-top: 4px;
+  margin-top: 2px;
   text-align: left;
+  width: 100%;
 }
 
 .agreement-tip {
@@ -416,22 +447,25 @@ export default {
   font-size: 13px;
   margin-top: 8px;
   text-align: left;
+  width: 100%;
 }
 
 .login-btn {
   width: 100%;
   padding: 12px;
-  background: #4f46e5;
+  background: #6366f1;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;
   font-size: 16px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s, box-shadow 0.2s;
+  font-weight: 600;
+  box-shadow: 0 2px 8px 0 rgba(60,60,100,0.04);
 }
 
 .login-btn:hover:not(:disabled) {
-  background: #4338ca;
+  background: #4f46e5;
 }
 
 .login-btn:disabled {
@@ -456,11 +490,12 @@ export default {
 }
 
 .checkmark {
-  width: 16px;
-  height: 16px;
-  border: 1px solid #e6e6e6;
-  border-radius: 4px;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid #e6e6e6;
+  border-radius: 5px;
   position: relative;
+  background: #fafbfc;
 }
 
 .checkbox-label input[type="checkbox"]:checked + .checkmark::after {
@@ -469,17 +504,17 @@ export default {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: #4f46e5;
-  font-size: 12px;
+  color: #6366f1;
+  font-size: 13px;
 }
 
 .terms-text {
   font-size: 14px;
-  color: #666;
+  color: #888;
 }
 
 .terms-text a {
-  color: #4f46e5;
+  color: #6366f1;
   text-decoration: none;
 }
 
@@ -488,25 +523,31 @@ export default {
 }
 
 .verification-btn {
+  width: 120px;
+  min-width: 100px;
+  max-width: 140px;
+  box-sizing: border-box;
   padding: 0 16px;
-  border: 1px solid #e6e6e6;
-  border-radius: 6px;
+  border: 1.5px solid #e6e6e6;
+  border-radius: 10px;
   background: none;
   color: #999;
   font-size: 14px;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.3s;
+  height: 40px;
+  font-weight: 500;
 }
 
 .verification-btn.active-btn {
-  border: 1px solid #4f46e5;
-  color: #4f46e5;
+  border: 1.5px solid #6366f1;
+  color: #6366f1;
   background: #f5f7ff;
 }
 
 .verification-btn.active-btn:hover:not(:disabled) {
-  background: #4f46e5;
+  background: #6366f1;
   color: #fff;
 }
 
@@ -515,5 +556,30 @@ export default {
   color: #999;
   cursor: not-allowed;
   background: none;
+}
+
+@media (max-width: 900px) {
+  .modal-content {
+    width: 98vw;
+    padding: 18px 2vw 12px 2vw;
+  }
+  .login-methods.horizontal {
+    flex-direction: column;
+  }
+  .divider-vertical {
+    width: 100%;
+    height: 32px;
+    min-height: 32px;
+    max-width: 100%;
+    justify-content: center;
+    align-items: center;
+  }
+  .divider-vertical span {
+    writing-mode: horizontal-tb;
+    padding: 0 10px;
+  }
+  .login-section {
+    padding: 0;
+  }
 }
 </style> 
