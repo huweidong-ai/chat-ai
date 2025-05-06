@@ -33,7 +33,7 @@ public class AIConfig {
         models.put("claude-3-opus", anthropicChatModel);
         
         // ZhiPuAI model
-        models.put("glm-4", zhiPuAiChatModel);
+        models.put("glm-4-flash", zhiPuAiChatModel);
         
         return models;
     }

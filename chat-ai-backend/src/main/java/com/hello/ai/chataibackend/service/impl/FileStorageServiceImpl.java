@@ -1,6 +1,7 @@
 package com.hello.ai.chataibackend.service.impl;
 
 import com.hello.ai.chataibackend.entity.File;
+import com.hello.ai.chataibackend.exception.BusinessException;
 import com.hello.ai.chataibackend.mapper.FilesMapper;
 import com.hello.ai.chataibackend.service.FileService;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +32,7 @@ public class FileStorageServiceImpl implements FileService {
         String newFileName = UUID.randomUUID() + fileExtension;
 
         if (fileName.contains("..")) {
-            throw new RuntimeException("Sorry! Filename contains invalid path sequence " + fileName);
+            throw new BusinessException("Sorry! Filename contains invalid path sequence " + fileName);
         }
 
         File fileEntity = new File();

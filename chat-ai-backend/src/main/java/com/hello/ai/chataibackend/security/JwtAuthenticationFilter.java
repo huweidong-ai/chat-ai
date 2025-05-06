@@ -32,6 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String token = request.getHeader("Authorization");
         if (token != null && token.startsWith("Bearer ")) {
+            token = token.replace("Bearer ", "");
             boolean validated = jwtTokenProvider.validateToken(token);
             if (!validated) {
                 log.error("Invalid token:{}", token);

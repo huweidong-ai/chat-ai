@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hello.ai.chataibackend.dto.ChatCompletionRequest;
 import com.hello.ai.chataibackend.entity.ChatCompletion;
 import com.hello.ai.chataibackend.entity.Message;
+import com.hello.ai.chataibackend.exception.BusinessException;
 import com.hello.ai.chataibackend.mapper.ChatCompletionsMapper;
 import com.hello.ai.chataibackend.mapper.MessagesMapper;
 import com.hello.ai.chataibackend.service.ChatService;
@@ -28,7 +29,7 @@ public class ChatServiceImpl extends ServiceImpl<ChatCompletionsMapper, ChatComp
     private final MessagesMapper messagesMapper;
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Flux<String> createChatCompletion(ChatCompletionRequest request) {
         // 创建新的聊天会话
         ChatCompletion chatCompletion = new ChatCompletion();
@@ -50,7 +51,7 @@ public class ChatServiceImpl extends ServiceImpl<ChatCompletionsMapper, ChatComp
         // 获取对应的 AI 模型
         ChatModel chatModel = chatModels.get(request.getModel());
         if (chatModel == null) {
-            throw new RuntimeException("Unsupported model: " + request.getModel());
+            throw new BusinessException("Unsupported model: " + request.getModel());
         }
 
         // 构建系统提示

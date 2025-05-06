@@ -6,6 +6,7 @@ import com.hello.ai.chataibackend.dto.PhoneLoginRequest;
 import com.hello.ai.chataibackend.dto.RegisterRequest;
 import com.hello.ai.chataibackend.dto.VerificationCodeRequest;
 import com.hello.ai.chataibackend.entity.User;
+import com.hello.ai.chataibackend.exception.BusinessException;
 import com.hello.ai.chataibackend.mapper.UsersMapper;
 import com.hello.ai.chataibackend.security.JwtTokenProvider;
 import com.hello.ai.chataibackend.service.AuthService;
@@ -51,11 +52,11 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public Object register(RegisterRequest request) {
         if (userMapper.exists(new LambdaQueryWrapper<User>().eq(User::getUsername, request.getUsername()))) {
-            throw new RuntimeException("Username is already taken");
+            throw new BusinessException("Username is already taken");
         }
 
         if (userMapper.exists(new LambdaQueryWrapper<User>().eq(User::getEmail, request.getEmail()))) {
-            throw new RuntimeException("Email is already taken");
+            throw new BusinessException("Email is already taken");
         }
 
         User user = new User();
@@ -114,7 +115,11 @@ public class AuthServiceImpl implements AuthService {
         if (user == null) {
             user = new User();
             user.setPhone(request.getPhone());
-            user.setUsername("用户" + request.getPhone().substring(request.getPhone().length() - 4));
+            String username = "用户" + request.getPhone().substring(request.getPhone().length() - 4);
+            user.setUsername(username);
+            // 设置默认密码为手机号后6位
+            String defaultPassword = request.getPhone().substring(request.getPhone().length() - 6);
+            user.setPassword(passwordEncoder.encode(defaultPassword));
             user.setAvatar("https://api.dicebear.com/7.x/avataaars/svg?seed=" + request.getPhone());
             user.setCreatedAt(LocalDateTime.now());
             user.setUpdatedAt(LocalDateTime.now());
@@ -132,4 +137,4 @@ public class AuthServiceImpl implements AuthService {
         return phone == null || !phone.matches("^1[3-9]\\d{9}$");
     }
 
-} 
+}

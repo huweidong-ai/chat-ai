@@ -43,7 +43,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null;
     token.value = null;
     localStorage.removeItem('user');
-      localStorage.removeItem('token');
+    localStorage.removeItem('token');
   };
 
   // 初始化状态

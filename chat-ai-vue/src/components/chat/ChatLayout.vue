@@ -7,6 +7,9 @@
         @stop-stream="handleStopStream"
         @send="handleSendMessage"
       />
+      <div v-if="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </div>
     </div>
   </div>
 </template>
@@ -15,6 +18,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '@/store/modules/auth';
 import ChatWindow from './ChatWindow.vue';
+import { chatService } from '@/services/chatService';
 
 export default {
   name: 'ChatLayout',
@@ -40,6 +44,7 @@ export default {
 
     const currentChatId = ref('1');
     const isStreaming = ref(false);
+    const errorMessage = ref(null);
 
     const currentMessages = computed(() => {
       const chat = chatHistory.value.find(c => c.id === currentChatId.value);
@@ -56,27 +61,66 @@ export default {
     };
 
     const handleSendMessage = (message) => {
-      if (!checkAuth() || !message.trim()) return;
+      // 确保检查 message.text 而非整个 message 对象
+      if (!checkAuth() || !message.text || !message.text.trim()) return;
 
       const chat = chatHistory.value.find(c => c.id === currentChatId.value);
       if (chat) {
         // 添加用户消息
         chat.messages.push({
           type: 'Me',
-          content: message,
+          content: message.text,
           timestamp: new Date().toLocaleTimeString()
         });
 
-        // 模拟AI响应
+        // 发送请求到后端
         isStreaming.value = true;
-        setTimeout(() => {
-          chat.messages.push({
-            type: 'AI',
-            content: '这是一个模拟的AI响应',
-            timestamp: new Date().toLocaleTimeString()
-          });
-          isStreaming.value = false;
-        }, 1000);
+        
+        // 创建 abort controller 用于取消请求
+        const abortController = new AbortController();
+        
+        // 开始SSE流
+        chatService.startChatStream(
+          {
+            text: message.text
+          },
+          {
+            onopen: () => console.log('Connection opened'),
+            onmessage: (event) => {
+              // 处理接收到的消息
+              try {
+                const data = JSON.parse(event.data);
+                if (data.content) {
+                  chat.messages.push({
+                    type: 'AI',
+                    content: data.content,
+                    timestamp: new Date().toLocaleTimeString()
+                  });
+                }
+              } catch (error) {
+                console.error('解析消息数据失败:', error);
+                // 在解析失败时添加友好的错误提示
+                chat.messages.push({
+                  type: 'system',
+                  content: '抱歉，我遇到了一些问题，无法处理这个请求。请稍后再试。',
+                  timestamp: new Date().toLocaleTimeString()
+                });
+                isStreaming.value = false;
+              }
+            },
+            onclose: () => {
+              isStreaming.value = false;
+              console.log('Connection closed');
+            },
+            onerror: (error) => {
+              isStreaming.value = false;
+              console.error('SSE错误:', error);
+              // 设置 errorMessage 状态为“系统繁忙，请稍后重试”
+              errorMessage.value = '系统繁忙，请稍后重试。';
+            },
+            signal: abortController.signal
+          }
+        );
       }
     };
 
@@ -92,7 +136,8 @@ export default {
       currentMessages,
       isStreaming,
       handleSendMessage,
-      handleStopStream
+      handleStopStream,
+      errorMessage
     };
   }
 };
@@ -110,5 +155,18 @@ export default {
   flex-direction: column;
   overflow: hidden;
   position: relative;
+}
+
+.error-message {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  padding: 1rem;
+  color: #721c24;
+  z-index: 1000;
+  border-radius: 0.25rem;
 }
 </style>
