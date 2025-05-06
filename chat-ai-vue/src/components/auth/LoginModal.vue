@@ -159,16 +159,18 @@ export default {
       validatePhone();
       if (!isPhoneValid.value) return;
       try {
-        await authStore.sendCode(phone.value);
-        countdown.value = 60;
-        const timer = setInterval(() => {
-          countdown.value--;
-          if (countdown.value <= 0) {
-            clearInterval(timer);
-          }
-        }, 1000);
+        const res = await authStore.sendCode(phone.value);
+        if (res.code === 200) {
+          countdown.value = 60;
+          const timer = setInterval(() => {
+            countdown.value--;
+            if (countdown.value <= 0) {
+              clearInterval(timer);
+            }
+          }, 1000);
+        }
       } catch (error) {
-        // 可加错误提示
+        console.error('发送验证码失败:', error);
       }
     };
 
@@ -177,14 +179,16 @@ export default {
       validateCode();
       if (!canLogin.value) return;
       try {
-        await authStore.login({
+        const res = await authStore.login({
           phone: phone.value,
           code: verificationCode.value
         });
-        emit('login-success');
-        handleClose();
+        if (res.code === 200) {
+          emit('login-success');
+          handleClose();
+        }
       } catch (error) {
-        // 可加错误提示
+        console.error('登录失败:', error);
       }
     };
 

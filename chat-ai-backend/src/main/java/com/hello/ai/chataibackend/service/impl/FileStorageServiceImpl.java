@@ -25,7 +25,7 @@ public class FileStorageServiceImpl implements FileService {
 
     @Override
     @Transactional
-    public File uploadFile(MultipartFile file) {
+    public String uploadFile(MultipartFile file) {
         String fileName = StringUtils.cleanPath(file.getOriginalFilename());
         String fileExtension = fileName.substring(fileName.lastIndexOf("."));
         String newFileName = UUID.randomUUID() + fileExtension;
@@ -44,7 +44,7 @@ public class FileStorageServiceImpl implements FileService {
         fileEntity.setUpdatedAt(LocalDateTime.now());
 
         filesMapper.insert(fileEntity);
-        return fileEntity;
+        return fileEntity.getPath();
     }
 
     @Override

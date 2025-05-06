@@ -6,7 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface FileService {
-    File uploadFile(MultipartFile file);
+    String uploadFile(MultipartFile file);
     File getFile(Long id);
     List<File> getFiles();
     void deleteFile(Long id);

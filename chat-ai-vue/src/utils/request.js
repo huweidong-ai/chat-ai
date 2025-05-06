@@ -1,5 +1,8 @@
 import axios from 'axios';
-import { getToken, handleUnauthorized } from '@/services/authService';
+import { ElMessage } from 'element-plus';
+import { handleUnauthorized } from '@/services/authService';
+
+// 创建axios实例
 const request = axios.create({
   baseURL: process.env.VUE_APP_BASE_URL,
   timeout: 10000,
@@ -9,53 +12,63 @@ const request = axios.create({
 // 请求拦截器：添加token
 request.interceptors.request.use(
   config => {
-    const token = getToken();
+    const token = localStorage.getItem('token');
     if (token) {
-      // config.headers['Authorization'] = `Bearer ${token}`;
-      config.headers['Authorization'] = token;
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  error => Promise.reject(error)
+  error => {
+    return Promise.reject(error);
+  }
 );
 
 // 响应拦截器：处理响应和错误
 request.interceptors.response.use(
   response => {
-    const { data } = response;
-    // 判断业务状态码{code: 200, data: {…}, message: '请求成功', success: true}
-    console.log('响应数据:', data)
-    if (data.code === 200 || data.success) {
-      return {
-        success: true,
-        data: data.data,
-        message: data.message || '操作成功'
-      };
-    } else {
-      console.log('请求失败:', data.message);
-      return Promise.reject(new Error(data.message || '请求失败'));
+    const res = response.data;
+    // 如果响应成功
+    if (res.code === 200) {
+      return res;
     }
+    // 处理业务错误
+    ElMessage({
+      message: res.message || '操作失败',
+      type: 'error',
+      duration: 3000
+    });
+    return Promise.reject(new Error(res.message || '操作失败'));
   },
   error => {
+    console.error('Response error:', error);
+    // 处理HTTP错误
     if (error.response) {
-      switch (error.response.status) {
-        case 401:
-          // console.log('status:', error.response.status);
-          // console.log('错误信息:', error.response.data.message);
-          if (error.response.data.code === '20004') {
-            handleUnauthorized();
-          }
-          return Promise.reject(new Error(error.response.data.message || '认证失败'));
-        case 403:
-          return Promise.reject(new Error('没有权限访问'));
-        case 404:
-          return Promise.reject(new Error('请求的资源不存在'));
-        case 500:
-        case 502:
-          return Promise.reject(new Error('服务器内部错误'));
-        default:
-          return Promise.reject(new Error('网络错误'));
+      const { status, data } = error.response;
+      // 处理401未授权
+      if (status === 401) {
+        handleUnauthorized();
+        return Promise.reject(new Error('请先登录'));
       }
+      // 处理其他错误
+      ElMessage({
+        message: data?.message || `请求失败(${status})`,
+        type: 'error',
+        duration: 3000
+      });
+    } else if (error.request) {
+      // 请求发出但没有收到响应
+      ElMessage({
+        message: '网络错误，请检查网络连接',
+        type: 'error',
+        duration: 3000
+      });
+    } else {
+      // 请求配置出错
+      ElMessage({
+        message: error.message || '请求配置错误',
+        type: 'error',
+        duration: 3000
+      });
     }
     return Promise.reject(error);
   }

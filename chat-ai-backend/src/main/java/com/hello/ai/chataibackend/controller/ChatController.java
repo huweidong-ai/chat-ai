@@ -1,11 +1,11 @@
 package com.hello.ai.chataibackend.controller;
 
+import com.hello.ai.chataibackend.common.ApiResponse;
 import com.hello.ai.chataibackend.dto.ChatCompletionRequest;
 import com.hello.ai.chataibackend.entity.ChatCompletion;
 import com.hello.ai.chataibackend.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
@@ -23,18 +23,18 @@ public class ChatController {
     }
 
     @GetMapping("/completions/{id}")
-    public ResponseEntity<ChatCompletion> getChatCompletion(@PathVariable Long id) {
-        return ResponseEntity.ok(chatService.getChatCompletion(id));
+    public ApiResponse<ChatCompletion> getChatCompletion(@PathVariable Long id) {
+        return ApiResponse.success(chatService.getChatCompletion(id));
     }
 
     @GetMapping("/completions")
-    public ResponseEntity<List<ChatCompletion>> getChatCompletions() {
-        return ResponseEntity.ok(chatService.getChatCompletions());
+    public ApiResponse<List<ChatCompletion>> getChatCompletions() {
+        return ApiResponse.success(chatService.getChatCompletions());
     }
 
     @DeleteMapping("/completions/{id}")
-    public ResponseEntity<Void> deleteChatCompletion(@PathVariable Long id) {
+    public ApiResponse<Void> deleteChatCompletion(@PathVariable Long id) {
         chatService.deleteChatCompletion(id);
-        return ResponseEntity.ok().build();
+        return ApiResponse.success(null);
     }
 } 
