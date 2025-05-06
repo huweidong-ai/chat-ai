@@ -20,15 +20,10 @@ export const removeToken = () => {
   document.cookie = `${TOKEN_KEY}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
 };
 
-// 检查是否已登录
-export const isAuthenticated = () => {
-  return !!getToken();
-};
-
 // 处理未授权的情况
 export const handleUnauthorized = () => {
   removeToken();
-  window.location.href = '/login';
+  window.location.href = '/chat';
 };
 
 // 发送验证码

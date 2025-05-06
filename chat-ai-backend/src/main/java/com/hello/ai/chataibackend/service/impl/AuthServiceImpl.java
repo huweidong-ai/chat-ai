@@ -40,7 +40,7 @@ public class AuthServiceImpl implements AuthService {
         );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = tokenProvider.generateToken(authentication);
+        String jwt = tokenProvider.generateToken(request.getUsername());
 
         Map<String, Object> response = new HashMap<>();
         response.put("token", jwt);
@@ -96,7 +96,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Object loginByPhone(PhoneLoginRequest request) {
         if (isInvalidPhoneNumber(request.getPhone())) {
             throw new IllegalArgumentException("无效的手机号码");
@@ -120,9 +120,9 @@ public class AuthServiceImpl implements AuthService {
             user.setUpdatedAt(LocalDateTime.now());
             userMapper.insert(user);
         }
-
+        String token = tokenProvider.generateToken(user.getUsername());
         Map<String, Object> response = new HashMap<>();
-        response.put("token", "mock_token");
+        response.put("token", token);
         response.put("user", user);
 
         return response;

@@ -93,6 +93,7 @@
 <script>
 import { ref, computed } from 'vue';
 import { useAuthStore } from '@/store/modules/auth';
+import { ElMessage } from 'element-plus';
 
 export default {
   name: 'LoginModal',
@@ -184,11 +185,21 @@ export default {
           code: verificationCode.value
         });
         if (res.code === 200) {
+          ElMessage({
+            message: `欢迎回来，${res.data.user.username}！`,
+            type: 'success',
+            duration: 3000
+          });
           emit('login-success');
           handleClose();
         }
       } catch (error) {
         console.error('登录失败:', error);
+        ElMessage({
+          message: error.message || '登录失败',
+          type: 'error',
+          duration: 3000
+        });
       }
     };
 

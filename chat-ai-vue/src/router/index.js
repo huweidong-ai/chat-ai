@@ -11,7 +11,13 @@ const routes = [
         path: '/chat',
         name: 'Chat',
         component: () => import('@/components/chat/ChatLayout.vue'),
-    }
+    },
+    {
+        path: '/settings',
+        name: 'Settings',
+        component: () => import('@/views/Settings.vue'),
+        meta: { requiresAuth: true }
+      }
 ];
 
 const router = createRouter({

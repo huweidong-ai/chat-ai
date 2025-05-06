@@ -45,8 +45,8 @@ spring:
 
 
 app:
-  jwt-secret: your-secret-key
-  jwt-expiration-milliseconds: 86400000
+  jwt-secret: YYvJvguytDSwVei71yrAlBE4UFwZRwWh+WFylCTK8RXY2kxFzNHfkVCpi9oeYyZIDKUsjGQ35ASx08yssmWffQ==
+  jwt-expiration-milliseconds: 86400000 # 24 hours
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml

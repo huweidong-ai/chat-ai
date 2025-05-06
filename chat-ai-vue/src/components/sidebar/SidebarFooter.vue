@@ -1,7 +1,7 @@
 <template>
   <div class="sidebar-footer">
     <div class="login-section">
-      <div class="user-info" v-if="isLoggedIn">
+      <div class="user-info" v-if="isLoggedIn" @click="goToSettings" style="cursor:pointer;">
         <img :src="userAvatar" alt="用户头像" class="user-avatar" />
         <span class="username">{{ username }}</span>
       </div>
@@ -14,13 +14,13 @@
       </button>
     </div>
     <div class="expanded-menu" :class="{ 'expanded': isExpanded }">
-      <button class="menu-item">
+      <!-- <button class="menu-item">
         <i class="fas fa-info-circle"></i>
         关于我们
-      </button>
-      <button class="menu-item">
-        <i class="fas fa-language"></i>
-        Language
+      </button> -->
+      <button class="menu-item" @click="goToSettings">
+        <i class="fas fa-user-cog"></i>
+        个人设置
       </button>
       <button class="menu-item">
         <i class="fas fa-comment-alt"></i>
@@ -33,11 +33,13 @@
 <script>
 import { ref, computed } from 'vue';
 import { useAuthStore } from '@/store/modules/auth';
+import { useRouter } from 'vue-router';
 
 export default {
   name: 'SidebarFooter',
   setup() {
     const authStore = useAuthStore();
+    const router = useRouter();
     const isExpanded = ref(false);
 
     const isLoggedIn = computed(() => authStore.isLoggedIn);
@@ -52,13 +54,23 @@ export default {
       authStore.showLoginModal = true;
     };
 
+    const handleLogout = () => {
+      authStore.logout();
+    };
+
+    const goToSettings = () => {
+      router.push('/settings');
+    };
+
     return {
       isLoggedIn,
       username,
       userAvatar,
       isExpanded,
       toggleMenu,
-      showLoginModal
+      showLoginModal,
+      handleLogout,
+      goToSettings
     };
   }
 };
@@ -177,5 +189,13 @@ export default {
 .menu-item i {
   width: 16px;
   text-align: center;
+}
+
+.menu-item.logout {
+  color: #e53e3e;
+}
+
+.menu-item.logout:hover {
+  background: #fbeaea;
 }
 </style> 

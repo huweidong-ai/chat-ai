@@ -17,15 +17,15 @@ export const useAuthStore = defineStore('auth', () => {
   // 手机号验证码登录（调用service）
   const login = async ({ phone, code }) => {
     const res = await phoneLogin(phone, code);
-    if (res.data) {
+    if (res.code === 200 && res.data) {
       user.value = res.data.user;
       token.value = res.data.token;
       localStorage.setItem('user', JSON.stringify(res.data.user));
       localStorage.setItem('token', res.data.token);
-      return res.data.user;
-        } else {
+      return res;
+    } else {
       throw new Error(res.message || '登录失败');
-        }
+    }
   };
 
   // 获取当前用户（可选，用于自动登录）
