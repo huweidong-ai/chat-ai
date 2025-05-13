@@ -1,8 +1,7 @@
 package com.hello.ai.chataibackend.security;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hello.ai.chataibackend.entity.User;
-import com.hello.ai.chataibackend.mapper.UsersMapper;
+import com.hello.ai.chataibackend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,8 +15,7 @@ import java.util.Collections;
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
 
-    private final UsersMapper usersMapper;
-
+    private final UserRepository userRepository;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -35,6 +33,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     public User findUserByUserName(String username) {
-        return usersMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
+        return userRepository.findByUsername(username)
+                .orElse(null);
     }
-} 
+}

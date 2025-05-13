@@ -1,5 +1,6 @@
 package com.hello.ai.chataibackend.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.List;
@@ -11,6 +12,7 @@ public class ChatCompletionRequest {
     private boolean stream;
 
     @Data
+    @AllArgsConstructor
     public static class ChatMessage {
         private String role;
         private String content;

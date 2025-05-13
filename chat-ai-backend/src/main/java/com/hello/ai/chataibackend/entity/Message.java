@@ -1,19 +1,20 @@
 package com.hello.ai.chataibackend.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 @Data
-@TableName("messages")
+@Entity
+@Table(name = "messages")
 public class Message {
-    @TableId(type = IdType.AUTO)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Long chatCompletionId;
     private String role;
+    @Column(columnDefinition = "TEXT")
     private String content;
     private LocalDateTime createdAt;
 }

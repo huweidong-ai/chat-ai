@@ -82,7 +82,15 @@ export default {
         // 开始SSE流
         chatService.startChatStream(
           {
-            text: message.text
+            messages: [
+              {
+                role: 'user',
+                content: message.text
+              }
+            ],
+            model: 'glm-4-flash',
+            temperature: 0.7,
+            stream: true
           },
           {
             onopen: () => console.log('Connection opened'),
@@ -90,12 +98,26 @@ export default {
               // 处理接收到的消息
               try {
                 const data = JSON.parse(event.data);
-                if (data.content) {
-                  chat.messages.push({
-                    type: 'AI',
-                    content: data.content,
-                    timestamp: new Date().toLocaleTimeString()
-                  });
+                const result = data.result;
+                if (result && result.output && result.output.text) {
+                  // 检查是否已存在AI回复消息
+                  const lastMessage = chat.messages[chat.messages.length - 1];
+                  if (lastMessage && lastMessage.type === 'AI') {
+                    // 如果最后一条是AI消息，则追加内容并强制更新
+                    lastMessage.content += result.output.text;
+                    chat.messages.push(...chat.messages.splice(0));
+                  } else {
+                    // 如果不是，则创建新的AI消息
+                    chat.messages.push({
+                      type: 'AI',
+                      content: result.output.text,
+                      timestamp: new Date().toLocaleTimeString()
+                    });
+                  }
+                }
+                // 检查是否需要结束流式响应
+                if (result && result.output && result.output.metadata && result.output.metadata.finishReason === 'STOP') {
+                  isStreaming.value = false;
                 }
               } catch (error) {
                 console.error('解析消息数据失败:', error);

@@ -1,18 +1,45 @@
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
-import { handleUnauthorized } from '@/services/authService';
+import { handleUnauthorized, getToken } from '@/services/authService';
+import { fetchEventSource } from '@microsoft/fetch-event-source';
+
+const BASE_URL = process.env.VUE_APP_BASE_URL
 
 // 创建axios实例
 const request = axios.create({
-  baseURL: process.env.VUE_APP_BASE_URL,
+  baseURL: BASE_URL,
   timeout: 15000,
   headers: {'Content-Type': 'application/json'}
 });
 
+
+function ssePost (url, data, openFun, successFun, closeFun, signal) {
+  fetchEventSource(BASE_URL + url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'text/event-stream',
+      'Authorization': getToken()
+    },
+    body: JSON.stringify(data),
+    onopen: openFun,
+    onmessage(event ) {
+      successFun(event)
+    },
+    onclose: closeFun,
+    onerror(error) {
+      throw error
+    },
+    openWhenHidden: true,
+    signal
+  });
+}
+
+
 // 请求拦截器：添加token
 request.interceptors.request.use(
   config => {
-    const token = localStorage.getItem('token');
+    const token = getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -74,4 +101,5 @@ request.interceptors.response.use(
   }
 );
 
+export { ssePost };
 export default request;

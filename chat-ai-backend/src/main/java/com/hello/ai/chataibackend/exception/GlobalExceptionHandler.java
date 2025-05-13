@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -25,7 +26,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiResponse<Void> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ApiResponse<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
         List<FieldError> fieldErrors = ex.getBindingResult().getFieldErrors();
         String errorMessage = fieldErrors.stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
@@ -33,14 +34,26 @@ public class GlobalExceptionHandler {
         return ApiResponse.error(400, errorMessage);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse<?> handleIllegalArgumentException(IllegalArgumentException ex) {
+        return ApiResponse.error(400, ex.getMessage());
+    }
+
     @ExceptionHandler(BindException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiResponse<Void> handleBindException(BindException ex) {
+    public ApiResponse<?> handleBindException(BindException ex) {
         List<FieldError> fieldErrors = ex.getBindingResult().getFieldErrors();
         String errorMessage = fieldErrors.stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining(", "));
         return ApiResponse.error(400, errorMessage);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+    public ApiResponse<?> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex) {
+        return ApiResponse.error(405, "不支持的请求方法：" + ex.getMethod());
     }
 
     @ExceptionHandler(Exception.class)

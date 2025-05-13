@@ -1,21 +1,24 @@
 package com.hello.ai.chataibackend.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hello.ai.chataibackend.dto.ChatCompletionRequest;
 import com.hello.ai.chataibackend.entity.ChatCompletion;
 import com.hello.ai.chataibackend.entity.Message;
 import com.hello.ai.chataibackend.exception.BusinessException;
-import com.hello.ai.chataibackend.mapper.ChatCompletionsMapper;
-import com.hello.ai.chataibackend.mapper.MessagesMapper;
+import com.hello.ai.chataibackend.repository.ChatCompletionsRepository;
+import com.hello.ai.chataibackend.repository.MessagesRepository;
 import com.hello.ai.chataibackend.service.ChatService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.chat.prompt.SystemPromptTemplate;
+import org.springframework.ai.util.json.JsonParser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,14 +26,22 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class ChatServiceImpl extends ServiceImpl<ChatCompletionsMapper, ChatCompletion> implements ChatService {
+@Slf4j
+public class ChatServiceImpl implements ChatService {
 
     private final Map<String, ChatModel> chatModels;
-    private final MessagesMapper messagesMapper;
+    private final MessagesRepository messagesRepository;
+    private final ChatCompletionsRepository chatCompletionsRepository;
 
+    /**
+     * 创建新的聊天会话
+     *
+     * @param request 聊天请求参数
+     * @return 聊天响应流
+     */
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public Flux<String> createChatCompletion(ChatCompletionRequest request) {
+    @Transactional
+    public Flux<ChatResponse> createChatCompletion(ChatCompletionRequest request) {
         // 创建新的聊天会话
         ChatCompletion chatCompletion = new ChatCompletion();
         chatCompletion.setUserId(1L); // TODO: 从当前用户获取
@@ -38,7 +49,7 @@ public class ChatServiceImpl extends ServiceImpl<ChatCompletionsMapper, ChatComp
         chatCompletion.setModel(request.getModel());
         chatCompletion.setCreatedAt(LocalDateTime.now());
         chatCompletion.setUpdatedAt(LocalDateTime.now());
-        save(chatCompletion);
+        chatCompletionsRepository.save(chatCompletion);
 
         // 保存用户消息
         Message userMessage = new Message();
@@ -46,7 +57,7 @@ public class ChatServiceImpl extends ServiceImpl<ChatCompletionsMapper, ChatComp
         userMessage.setRole("user");
         userMessage.setContent(request.getMessages().getFirst().getContent());
         userMessage.setCreatedAt(LocalDateTime.now());
-        messagesMapper.insert(userMessage);
+        messagesRepository.save(userMessage);
 
         // 获取对应的 AI 模型
         ChatModel chatModel = chatModels.get(request.getModel());
@@ -54,44 +65,64 @@ public class ChatServiceImpl extends ServiceImpl<ChatCompletionsMapper, ChatComp
             throw new BusinessException("Unsupported model: " + request.getModel());
         }
 
-        // 构建系统提示
-        String systemPrompt = "You are a helpful AI assistant. Please provide clear and concise responses.";
-        SystemPromptTemplate systemPromptTemplate = new SystemPromptTemplate(systemPrompt);
+        // 使用 StringBuilder 来收集完整的响应
+        StringBuilder fullResponse = new StringBuilder();
 
         // 调用 AI 服务并返回流式响应
         return chatModel.stream(new Prompt(request.getMessages().getFirst().getContent()))
+                .publishOn(Schedulers.boundedElastic())
                 .map(response -> {
-                    // 如果是最后一个响应，保存完整的 AI 消息
-                    if (response.getResult().getOutput() != null) {
+                    String content = response.getResult().getOutput().getText();
+                    fullResponse.append(content);
+                    log.info("Received response: {}", JsonParser.toJson(response));
+                    // 检查是否是最后一个响应
+                    if (response.getResult().getOutput() != null &&
+                        "STOP".equals(response.getResult().getOutput().getMetadata().get("finishReason"))) {
+                        // 只在最后保存一次完整的 AI 消息
                         Message aiMessage = new Message();
                         aiMessage.setChatCompletionId(chatCompletion.getId());
                         aiMessage.setRole("assistant");
-                        aiMessage.setContent(response.getResult().getOutput().toString());
+                        aiMessage.setContent(fullResponse.toString());
                         aiMessage.setCreatedAt(LocalDateTime.now());
-                        messagesMapper.insert(aiMessage);
+                        messagesRepository.save(aiMessage);
                     }
-                    return response.getResult().getOutput().toString();
+                    return response;
                 });
     }
 
+    /**
+     * 获取指定ID的聊天会话
+     *
+     * @param id 聊天会话ID
+     * @return 聊天会话信息
+     */
     @Override
     public ChatCompletion getChatCompletion(Long id) {
-        return getById(id);
+        return chatCompletionsRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Chat completion not found"));
     }
 
+    /**
+     * 获取所有聊天会话列表
+     *
+     * @return 聊天会话列表
+     */
     @Override
     public List<ChatCompletion> getChatCompletions() {
-        return list(new LambdaQueryWrapper<ChatCompletion>()
-                .orderByDesc(ChatCompletion::getCreatedAt));
+        return chatCompletionsRepository.findAll();
     }
 
+    /**
+     * 删除指定ID的聊天会话及其相关消息
+     *
+     * @param id 聊天会话ID
+     */
     @Override
     @Transactional
     public void deleteChatCompletion(Long id) {
         // 删除相关消息
-        messagesMapper.delete(new LambdaQueryWrapper<Message>()
-                .eq(Message::getChatCompletionId, id));
+        messagesRepository.deleteAllByChatCompletionId(id);
         // 删除聊天会话
-        removeById(id);
+        chatCompletionsRepository.deleteById(id);
     }
-} 
+}

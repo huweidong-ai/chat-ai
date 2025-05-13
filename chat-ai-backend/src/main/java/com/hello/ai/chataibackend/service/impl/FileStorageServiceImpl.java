@@ -2,7 +2,7 @@ package com.hello.ai.chataibackend.service.impl;
 
 import com.hello.ai.chataibackend.entity.File;
 import com.hello.ai.chataibackend.exception.BusinessException;
-import com.hello.ai.chataibackend.mapper.FilesMapper;
+import com.hello.ai.chataibackend.repository.FilesRepository;
 import com.hello.ai.chataibackend.service.FileService;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -21,7 +21,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FileStorageServiceImpl implements FileService {
 
-    private final FilesMapper filesMapper;
+    private final FilesRepository filesRepository;
 
 
     @Override
@@ -44,26 +44,26 @@ public class FileStorageServiceImpl implements FileService {
         fileEntity.setCreatedAt(LocalDateTime.now());
         fileEntity.setUpdatedAt(LocalDateTime.now());
 
-        filesMapper.insert(fileEntity);
+        filesRepository.save(fileEntity);
         return fileEntity.getPath();
     }
 
     @Override
     public File getFile(Long id) {
-        return filesMapper.selectById(id);
+        return filesRepository.findById(id).orElse(null);
     }
 
     @Override
     public List<File> getFiles() {
-        return filesMapper.selectList(null);
+        return filesRepository.findAll();
     }
 
     @SneakyThrows
     @Override
     @Transactional
     public void deleteFile(Long id) {
-        File file = filesMapper.selectById(id);
+        File file = filesRepository.findById(id).orElse(null);
         Files.deleteIfExists(Path.of(file.getPath()));
-        filesMapper.deleteById(id);
+        filesRepository.deleteById(id);
     }
 } 

@@ -12,7 +12,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.security.sasl.AuthenticationException;
 import java.io.IOException;
 
 @Slf4j
@@ -33,21 +32,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = request.getHeader("Authorization");
         if (token != null && token.startsWith("Bearer ")) {
             token = token.replace("Bearer ", "");
-            boolean validated = jwtTokenProvider.validateToken(token);
-            if (!validated) {
-                log.error("Invalid token:{}", token);
-                throw new AuthenticationException("Invalid token");
-            }
-
-            String username = jwtTokenProvider.getUsernameFromToken(token);
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+            try {
+                boolean validated = jwtTokenProvider.validateToken(token);
+                if (validated) {
+                    String username = jwtTokenProvider.getUsernameFromToken(token);
+                    if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                userDetails, null, userDetails.getAuthorities());
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    }
+                }
+            } catch (Exception ex) {
+                log.error("JWT authentication error", ex);
+                return;
             }
         }
 
         filterChain.doFilter(request, response);
     }
+
 }

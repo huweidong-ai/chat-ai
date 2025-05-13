@@ -1,21 +1,22 @@
 package com.hello.ai.chataibackend.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hello.ai.chataibackend.dto.LoginRequest;
 import com.hello.ai.chataibackend.dto.PhoneLoginRequest;
 import com.hello.ai.chataibackend.dto.RegisterRequest;
 import com.hello.ai.chataibackend.dto.VerificationCodeRequest;
 import com.hello.ai.chataibackend.entity.User;
 import com.hello.ai.chataibackend.exception.BusinessException;
-import com.hello.ai.chataibackend.mapper.UsersMapper;
+import com.hello.ai.chataibackend.repository.UserRepository;
 import com.hello.ai.chataibackend.security.JwtTokenProvider;
 import com.hello.ai.chataibackend.service.AuthService;
 import com.hello.ai.chataibackend.service.VerificationCodeService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,11 +27,12 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
-    private final UsersMapper userMapper;
+    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final VerificationCodeService verificationCodeService;
 
@@ -51,11 +53,11 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public Object register(RegisterRequest request) {
-        if (userMapper.exists(new LambdaQueryWrapper<User>().eq(User::getUsername, request.getUsername()))) {
+        if (userRepository.existsByUsername(request.getUsername())) {
             throw new BusinessException("Username is already taken");
         }
 
-        if (userMapper.exists(new LambdaQueryWrapper<User>().eq(User::getEmail, request.getEmail()))) {
+        if (userRepository.existsByEmail(request.getEmail())) {
             throw new BusinessException("Email is already taken");
         }
 
@@ -66,7 +68,7 @@ public class AuthServiceImpl implements AuthService {
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
 
-        userMapper.insert(user);
+        userRepository.save(user);
 
         Map<String, Object> response = new HashMap<>();
         response.put("message", "User registered successfully");
@@ -77,7 +79,8 @@ public class AuthServiceImpl implements AuthService {
     public User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-        return userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 
     @Override
@@ -88,7 +91,7 @@ public class AuthServiceImpl implements AuthService {
 
         String code = verificationCodeService.generateAndSaveCode(request.getPhone());
         
-        System.out.println("发送验证码到手机: " + request.getPhone() + ", 验证码: " + code);
+        log.info("发送验证码到手机: " + request.getPhone() + ", 验证码: " + code);
         
         return new HashMap<String, Object>() {{
             put("success", true);
@@ -107,24 +110,20 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("验证码错误或已过期");
         }
 
-        User user = userMapper.selectOne(
-            new LambdaQueryWrapper<User>()
-                .eq(User::getPhone, request.getPhone())
-        );
+        User user = userRepository.findByPhone(request.getPhone())
+                .orElseGet(() -> {
+                    User newUser = new User();
+                    newUser.setPhone(request.getPhone());
+                    String username = "用户" + request.getPhone().substring(request.getPhone().length() - 4);
+                    newUser.setUsername(username);
+                    String defaultPassword = request.getPhone().substring(request.getPhone().length() - 6);
+                    newUser.setPassword(passwordEncoder.encode(defaultPassword));
+                    newUser.setAvatar("https://api.dicebear.com/7.x/avataaars/svg?seed=" + request.getPhone());
+                    newUser.setCreatedAt(LocalDateTime.now());
+                    newUser.setUpdatedAt(LocalDateTime.now());
+                    return userRepository.save(newUser);
+                });
 
-        if (user == null) {
-            user = new User();
-            user.setPhone(request.getPhone());
-            String username = "用户" + request.getPhone().substring(request.getPhone().length() - 4);
-            user.setUsername(username);
-            // 设置默认密码为手机号后6位
-            String defaultPassword = request.getPhone().substring(request.getPhone().length() - 6);
-            user.setPassword(passwordEncoder.encode(defaultPassword));
-            user.setAvatar("https://api.dicebear.com/7.x/avataaars/svg?seed=" + request.getPhone());
-            user.setCreatedAt(LocalDateTime.now());
-            user.setUpdatedAt(LocalDateTime.now());
-            userMapper.insert(user);
-        }
         String token = tokenProvider.generateToken(user.getUsername());
         Map<String, Object> response = new HashMap<>();
         response.put("token", token);

@@ -5,6 +5,7 @@ import com.hello.ai.chataibackend.dto.ChatCompletionRequest;
 import com.hello.ai.chataibackend.entity.ChatCompletion;
 import com.hello.ai.chataibackend.service.ChatService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -18,7 +19,7 @@ public class ChatController {
     private final ChatService chatService;
 
     @PostMapping(value = "/completions", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> createChatCompletion(@RequestBody ChatCompletionRequest request) {
+    public Flux<ChatResponse> createChatCompletion(@RequestBody ChatCompletionRequest request) {
         return chatService.createChatCompletion(request);
     }
 
