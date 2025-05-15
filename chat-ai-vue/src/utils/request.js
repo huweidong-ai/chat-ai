@@ -78,7 +78,7 @@ request.interceptors.response.use(
       }
       // 处理其他错误
       ElMessage({
-        message: data?.message || `请求失败(${status})`,
+        message: data?.message || `系统繁忙，稍后重试(${status})`,
         type: 'error',
         duration: 3000
       });
