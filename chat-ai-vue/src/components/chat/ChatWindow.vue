@@ -18,6 +18,7 @@
         <li v-for="(msg, index) in messages" :key="index" :class="['message', msg.type]">
           <div class="avatar">
             <img v-if="msg.type === 'AI'" src="../../assets/ai-avatar.png" alt="AI" />
+            <img v-else-if="msg.type === 'Me' && authStore.user?.avatar" :src="authStore.user.avatar" alt="用户头像" />
             <span v-else>{{ msg.type === 'Me' ? '我' : (msg.type === 'system' ? '系统' : 'AI') }}</span>
           </div>
           <div class="message-wrapper">
@@ -60,6 +61,7 @@ import shell from 'highlight.js/lib/languages/shell';
 import sql from 'highlight.js/lib/languages/sql';
 import plaintext from 'highlight.js/lib/languages/plaintext';
 import ChatInput from './ChatInput.vue';
+import { useAuthStore } from '@/store/modules/auth';
 import 'highlight.js/styles/atom-one-dark.css';
 
 hljs.registerLanguage('javascript', javascript);
@@ -96,6 +98,7 @@ export default {
   },
 
   setup(props, { emit }) {
+    const authStore = useAuthStore();
     const renderMarkdown = (content) => {
       try {
         if (content === null || content === undefined) {
@@ -131,7 +134,8 @@ export default {
     return {
       renderMarkdown,
       chatHeaderTitle,
-      handleSend
+      handleSend,
+      authStore
     };
   }
 };
