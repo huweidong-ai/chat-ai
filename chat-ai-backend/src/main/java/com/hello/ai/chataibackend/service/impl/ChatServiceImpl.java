@@ -9,12 +9,9 @@ import com.hello.ai.chataibackend.repository.MessagesRepository;
 import com.hello.ai.chataibackend.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.util.json.JsonParser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
@@ -71,22 +68,21 @@ public class ChatServiceImpl implements ChatService {
         // 调用 AI 服务并返回流式响应
         return chatModel.stream(new Prompt(request.getMessages().getFirst().getContent()))
                 .publishOn(Schedulers.boundedElastic())
-                .map(response -> {
+                .doOnNext(response -> {
+                    // 立即将每个响应块添加到完整响应中
                     String content = response.getResult().getOutput().getText();
                     fullResponse.append(content);
-                    log.info("Received response: {}", JsonParser.toJson(response));
-                    // 检查是否是最后一个响应
-                    if (response.getResult().getOutput() != null &&
-                        "STOP".equals(response.getResult().getOutput().getMetadata().get("finishReason"))) {
-                        // 只在最后保存一次完整的 AI 消息
-                        Message aiMessage = new Message();
-                        aiMessage.setChatCompletionId(chatCompletion.getId());
-                        aiMessage.setRole("assistant");
-                        aiMessage.setContent(fullResponse.toString());
-                        aiMessage.setCreatedAt(LocalDateTime.now());
-                        messagesRepository.save(aiMessage);
-                    }
-                    return response;
+                    log.debug("Streaming response chunk: {}", content);
+                })
+                .doOnComplete(() -> {
+                    // 在流完成时保存完整的 AI 消息到数据库
+                    log.info("Stream completed, saving full response");
+                    Message aiMessage = new Message();
+                    aiMessage.setChatCompletionId(chatCompletion.getId());
+                    aiMessage.setRole("assistant");
+                    aiMessage.setContent(fullResponse.toString());
+                    aiMessage.setCreatedAt(LocalDateTime.now());
+                    messagesRepository.save(aiMessage);
                 });
     }
 

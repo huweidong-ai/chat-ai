@@ -12,8 +12,7 @@ export const uploadFile = async (file, isPreview = false) => {
     const response = await fetch('/uploadFile', {
       method: 'POST',
       headers: {
-        // Authorization: `Bearer ${getToken()}`
-        Authorization: getToken()
+        Authorization: `Bearer ${getToken()}`
       },
       body: formData
     });

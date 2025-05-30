@@ -15,7 +15,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { useAuthStore } from '@/store/modules/auth';
 import ChatWindow from './ChatWindow.vue';
 import { chatService } from '@/services/chatService';
@@ -45,6 +45,18 @@ export default {
     const currentChatId = ref('1');
     const isStreaming = ref(false);
     const errorMessage = ref(null);
+    // 创建 abort controller 用于取消请求
+    const abortController = ref(null);
+    
+    // 添加滚动到底部的函数
+    const scrollToBottom = () => {
+      nextTick(() => {
+        const chatBody = document.querySelector('.chat-body');
+        if (chatBody) {
+          chatBody.scrollTop = chatBody.scrollHeight;
+        }
+      });
+    };
 
     const currentMessages = computed(() => {
       const chat = chatHistory.value.find(c => c.id === currentChatId.value);
@@ -72,12 +84,15 @@ export default {
           content: message.text,
           timestamp: new Date().toLocaleTimeString()
         });
+        
+        // 滚动到最新消息
+        scrollToBottom();
 
         // 发送请求到后端
         isStreaming.value = true;
         
-        // 创建 abort controller 用于取消请求
-        const abortController = new AbortController();
+        // 重置并创建新的 abort controller
+        abortController.value = new AbortController();
         
         // 开始SSE流
         chatService.startChatStream(
@@ -93,54 +108,92 @@ export default {
             stream: true
           },
           {
-            onopen: () => console.log('Connection opened'),
-            onmessage: (event) => {
-              // 处理接收到的消息
-              try {
-                const data = JSON.parse(event.data);
-                const result = data.result;
-                if (result && result.output && result.output.text) {
+            // 连接开始时的回调
+            onStart: () => {
+              console.log('连接已开始');
+            },
+            
+            // 收到消息时的回调
+            onMessage: (data) => {
+              if (!data) return;
+              
+              console.log('处理消息:', data.result?.output?.text ? data.result.output.text.substring(0, 30) + '...' : '无文本内容');
+              
+              const result = data.result;
+              // 检查是否有文本内容
+              if (result && result.output) {
+                const text = result.output.text || '';
+                
+                // 如果有文本内容，则处理
+                if (text) {
                   // 检查是否已存在AI回复消息
-                  const lastMessage = chat.messages[chat.messages.length - 1];
+                  const lastMessageIndex = chat.messages.length - 1;
+                  const lastMessage = chat.messages[lastMessageIndex];
+                  
                   if (lastMessage && lastMessage.type === 'AI') {
-                    // 如果最后一条是AI消息，则追加内容并强制更新
-                    lastMessage.content += result.output.text;
-                    chat.messages.push(...chat.messages.splice(0));
+                    // 已有AI消息，追加内容
+                    console.log('添加新文本到现有消息:', text);
+                    
+                    // 创建新消息数组并替换旧数组
+                    const newMessages = [...chat.messages];
+                    newMessages[lastMessageIndex] = {
+                      ...lastMessage,
+                      content: lastMessage.content + text
+                    };
+                    
+                    // 强制Vue更新数组
+                    chat.messages.length = 0;
+                    chat.messages.push(...newMessages);
                   } else {
-                    // 如果不是，则创建新的AI消息
+                    // 新建一条AI消息
+                    console.log('创建新的AI消息');
                     chat.messages.push({
                       type: 'AI',
-                      content: result.output.text,
+                      content: text,
                       timestamp: new Date().toLocaleTimeString()
                     });
                   }
+                  
+                  // 滚动到底部
+                  scrollToBottom();
                 }
-                // 检查是否需要结束流式响应
-                if (result && result.output && result.output.metadata && result.output.metadata.finishReason === 'STOP') {
+                
+                // 检查是否完成
+                const finishReason = result?.output?.metadata?.finishReason;
+                if (finishReason === 'STOP') {
+                  console.log('流式响应完成，原因:', finishReason);
                   isStreaming.value = false;
                 }
-              } catch (error) {
-                console.error('解析消息数据失败:', error);
-                // 在解析失败时添加友好的错误提示
-                chat.messages.push({
-                  type: 'system',
-                  content: '抱歉，我遇到了一些问题，无法处理这个请求。请稍后再试。',
-                  timestamp: new Date().toLocaleTimeString()
-                });
-                isStreaming.value = false;
               }
             },
-            onclose: () => {
+            
+            // 流完成时的回调
+            onComplete: () => {
+              console.log('流式响应完成');
               isStreaming.value = false;
-              console.log('Connection closed');
             },
-            onerror: (error) => {
+            
+            // 发生错误时的回调
+            onError: (error) => {
+              console.error('错误发生:', error);
               isStreaming.value = false;
-              console.error('SSE错误:', error);
-              // 设置 errorMessage 状态为“系统繁忙，请稍后重试”
-              errorMessage.value = '系统繁忙，请稍后重试。';
+              
+              // 设置错误消息
+              errorMessage.value = error.message;
+              
+              // 在聊天中添加系统错误消息
+              chat.messages.push({
+                type: 'system',
+                content: `错误: ${error.message}`,
+                timestamp: new Date().toLocaleTimeString()
+              });
+              
+              // 滚动到底部显示错误消息
+              scrollToBottom();
             },
-            signal: abortController.signal
+            
+            // 用于取消请求的信号
+            signal: abortController.value.signal
           }
         );
       }
@@ -148,6 +201,10 @@ export default {
 
     const handleStopStream = () => {
       isStreaming.value = false;
+      // 如果存在abortController，则取消请求
+      if (abortController.value) {
+        abortController.value.abort();
+      }
     };
 
     onMounted(async () => {
@@ -159,7 +216,8 @@ export default {
       isStreaming,
       handleSendMessage,
       handleStopStream,
-      errorMessage
+      errorMessage,
+      scrollToBottom
     };
   }
 };

@@ -13,26 +13,146 @@ const request = axios.create({
 });
 
 
-function ssePost (url, data, openFun, successFun, closeFun, signal) {
+/**
+ * 发送SSE请求并处理流式响应
+ * @param {string} url - 请求路径
+ * @param {Object} data - 请求数据
+ * @param {Object} options - 配置选项
+ * @param {Function} options.onStart - 连接开始时的回调
+ * @param {Function} options.onMessage - 收到消息时的回调
+ * @param {Function} options.onComplete - 流完成时的回调
+ * @param {Function} options.onError - 发生错误时的回调
+ * @param {AbortSignal} options.signal - 用于取消请求的信号
+ * @returns {Object} 包含取消方法的对象
+ */
+function ssePost(url, data, options = {}) {
+  const {
+    onStart,
+    onMessage,
+    onComplete,
+    onError,
+    signal
+  } = options;
+  
+  // 创建默认的错误处理函数
+  const handleError = (error, status) => {
+    console.error('SSE error:', error);
+    
+    // 构建错误消息
+    let errorMessage = '连接错误，请稍后重试';
+    if (status) {
+      errorMessage = `服务器错误 (${status}): 请稍后重试`;
+    }
+    
+    // 显示错误消息
+    ElMessage.error(errorMessage);
+    
+    // 如果提供了错误回调，则调用它
+    if (onError) {
+      try {
+        onError({
+          message: errorMessage,
+          status,
+          originalError: error
+        });
+      } catch (e) {
+        console.error('Error in error callback:', e);
+      }
+    }
+  };
+  
+  // 调用fetchEventSource
   fetchEventSource(BASE_URL + url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'text/event-stream',
-      'Authorization': getToken()
+      'Authorization': `Bearer ${getToken()}`
     },
     body: JSON.stringify(data),
-    onopen: openFun,
-    onmessage(event ) {
-      successFun(event)
+    onopen: async (response) => {
+      console.log('SSE connection opened with status:', response.status);
+      
+      // 检查响应状态码
+      if (!response.ok) {
+        console.error(`SSE connection failed with status: ${response.status}`);
+        // 读取错误响应内容
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        
+        // 处理错误
+        handleError(new Error(errorText), response.status);
+        return;
+      }
+      
+      // 调用开始回调
+      if (onStart) {
+        try {
+          onStart(response);
+        } catch (e) {
+          console.error('Error in start callback:', e);
+        }
+      }
     },
-    onclose: closeFun,
-    onerror(error) {
-      throw error
+    onmessage: (event) => {
+      if (event && event.data) {
+        try {
+          // 尝试解析消息
+          const data = JSON.parse(event.data);
+          
+          // 调用消息回调
+          if (onMessage) {
+            onMessage(data, event);
+          }
+          
+          // 检查是否完成
+          const finishReason = data?.result?.output?.metadata?.finishReason;
+          if (finishReason === 'STOP' && onComplete) {
+            try {
+              onComplete(data);
+            } catch (e) {
+              console.error('Error in complete callback:', e);
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing SSE message:', e);
+          // 即使解析错误也传递原始消息
+          if (onMessage) {
+            onMessage(null, event);
+          }
+        }
+      }
+    },
+    onclose: () => {
+      console.log('SSE connection closed');
+      if (onComplete) {
+        try {
+          onComplete();
+        } catch (e) {
+          console.error('Error in complete callback:', e);
+        }
+      }
+    },
+    onerror: (error) => {
+      handleError(error);
     },
     openWhenHidden: true,
     signal
   });
+  
+  // 返回一个对象，包含取消方法
+  return {
+    cancel: () => {
+      console.log('SSE connection manually cancelled');
+      if (onComplete) {
+        try {
+          onComplete({ cancelled: true });
+        } catch (e) {
+          console.error('Error in complete callback:', e);
+        }
+      }
+    }
+  };
 }
 
 

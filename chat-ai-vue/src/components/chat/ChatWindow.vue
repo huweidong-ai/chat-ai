@@ -5,6 +5,9 @@
         <h3>{{ chatHeaderTitle }}</h3>
       </div>
       <div class="header-right">
+        <button v-if="isStreaming" class="icon-btn stop-btn" title="停止生成" @click="stopStream">
+          <i class="fas fa-stop"></i>
+        </button>
         <button class="icon-btn" title="复制对话">
           <i class="fas fa-copy"></i>
         </button>
@@ -18,7 +21,7 @@
         <li v-for="(msg, index) in messages" :key="index" :class="['message', msg.type]">
           <div class="avatar">
             <img v-if="msg.type === 'AI'" src="../../assets/ai-avatar.png" alt="AI" />
-            <img v-else-if="msg.type === 'Me' && authStore.user?.avatar" :src="authStore.user.avatar" alt="用户头像" />
+            <img v-else-if="msg.type === 'Me' && authStore.user && authStore.user.avatar" :src="authStore.user.avatar" alt="用户头像" />
             <span v-else>{{ msg.type === 'Me' ? '我' : (msg.type === 'system' ? '系统' : 'AI') }}</span>
           </div>
           <div class="message-wrapper">
@@ -130,11 +133,16 @@ export default {
     const handleSend = (message) => {
       emit('send', message);
     };
+    
+    const stopStream = () => {
+      emit('stop-stream');
+    };
 
     return {
       renderMarkdown,
       chatHeaderTitle,
       handleSend,
+      stopStream,
       authStore
     };
   }
@@ -289,6 +297,16 @@ export default {
 .header-right {
   display: flex;
   gap: 8px;
+}
+
+.stop-btn {
+  background-color: #f56c6c;
+  color: white;
+}
+
+.stop-btn:hover {
+  background-color: #e64242;
+  color: white;
 }
 
 .chat-input {
